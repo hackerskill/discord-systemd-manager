@@ -96,6 +96,8 @@ async def logs(interaction: discord.Interaction, service: app_commands.Choice[st
         output = result.stdout.strip()
         if result.stderr.strip():
             output += f"\n{result.stderr.strip()}"
+        if len(output) > 1900:
+            output = "...(truncated)\n" + output[-1900:]
         await interaction.followup.send(f"```text\n{output}\n```")
     else:
         await interaction.followup.send(f"Failed to get logs for {service.value}:\n```text\n{result.stderr}\n```")
