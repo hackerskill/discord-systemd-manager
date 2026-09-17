@@ -75,6 +75,16 @@ async def status(interaction: discord.Interaction, service: app_commands.Choice[
         output += f"\n{result.stderr.strip()}"
     await interaction.followup.send(f"```text\n{output}\n```")
 
+@tree.command(name="logs", description="Get logs of any service running on the server")
+@app_commands.choices(service=services_choices)
+async def logs(interaction: discord.Interaction, service: app_commands.Choice[str]):
+    await interaction.response.send_message(f"Getting live logs for {service.value}...")
+    result = subprocess.run(["journalctl", "-u", service.value, "--no-pager", "-n", "50"], capture_output=True, text=True)
+    output = result.stdout.strip()
+    if result.stderr.strip():
+        output += f"\n{result.stderr.strip()}"
+    await interaction.followup.send(f"```text\n{output}\n```")
+
 @tree.command(name="about", description="Get information about this bot")
 async def about(interaction: discord.Interaction):
     await interaction.response.send_message("This is a discord systemd manager, built for managing systemd services on a server directly from discord chats."
