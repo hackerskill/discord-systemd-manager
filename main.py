@@ -42,6 +42,7 @@ async def on_ready():
 @tree.command(name="services", description="Get information about all services running on the server")
 async def services(interaction: discord.Interaction):
     await interaction.response.send_message("Getting information about all services...")
+    print("Information about all services fetched", flush=True)
     await interaction.followup.send("\n".join(services_list))
 
 @tree.command(name="restart", description="Restart a service on the server")
@@ -51,6 +52,7 @@ async def restart(interaction: discord.Interaction, service: app_commands.Choice
     result=subprocess.run(["systemctl", "restart", service.value], capture_output=True, text=True)
     if result.returncode == 0:
         await interaction.followup.send("Service restarted successfully.")
+        print(f"Restarted {service.value}", flush=True)
     else:
         await interaction.followup.send(f"Failed to restart service:\n```text\n{result.stderr}\n```")
 
@@ -61,6 +63,7 @@ async def start(interaction: discord.Interaction, service: app_commands.Choice[s
     result = subprocess.run(["systemctl", "start", service.value], capture_output=True, text=True)
     if result.returncode == 0:
         await interaction.followup.send("Service started successfully.")
+        print(f"Started {service.value}", flush=True)
     else:
         await interaction.followup.send(f"Failed to start service:\n```text\n{result.stderr}\n```")
 
@@ -71,6 +74,7 @@ async def stop(interaction: discord.Interaction, service: app_commands.Choice[st
     result = subprocess.run(["systemctl", "stop", service.value], capture_output=True, text=True)
     if result.returncode == 0:
         await interaction.followup.send("Service stopped successfully.")
+        print(f"Stopped {service.value}", flush=True)
     else:
         await interaction.followup.send(f"Failed to stop service:\n```text\n{result.stderr}\n```")
 
@@ -84,6 +88,7 @@ async def status(interaction: discord.Interaction, service: app_commands.Choice[
         if result.stderr.strip():
             output += f"\n{result.stderr.strip()}"
         await interaction.followup.send(f"```text\n{output}\n```")
+        print(f"Status of {service.value} fetched", flush=True)
     else:
         await interaction.followup.send(f"Failed to get status of {service.value}:\n```text\n{result.stderr}\n```")
 
@@ -99,6 +104,7 @@ async def logs(interaction: discord.Interaction, service: app_commands.Choice[st
         if len(output) > 1900:
             output = "...(truncated)\n" + output[-1900:]
         await interaction.followup.send(f"```text\n{output}\n```")
+        print(f"Logs for {service.value} fetched", flush=True)
     else:
         await interaction.followup.send(f"Failed to get logs for {service.value}:\n```text\n{result.stderr}\n```")
 
