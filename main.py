@@ -78,12 +78,20 @@ async def status(interaction: discord.Interaction, service: app_commands.Choice[
 @tree.command(name="logs", description="Get logs of any service running on the server")
 @app_commands.choices(service=services_choices)
 async def logs(interaction: discord.Interaction, service: app_commands.Choice[str]):
-    await interaction.response.send_message(f"Getting live logs for {service.value}...")
-    result = subprocess.run(["journalctl", "-u", service.value, "--no-pager", "-n", "50"], capture_output=True, text=True)
+    await interaction.response.send_message(f"Getting logs for {service.value}...")
+    result = subprocess.run(["journalctl", "-u", service.value, "--no-pager", "-n", "20"], capture_output=True, text=True)
+    print(result.stdout)
     output = result.stdout.strip()
     if result.stderr.strip():
         output += f"\n{result.stderr.strip()}"
     await interaction.followup.send(f"```text\n{output}\n```")
+
+@tree.command(name="clear", description="clearing the bot's messages")
+async def clear(interaction: discord.Interaction, clear: int):
+    await interaction.response.send_message("Clearing messages...")
+    async for msg in interaction.channel.history(limit=clear):
+                if msg.author == client.user:
+                    await msg.delete()
 
 @tree.command(name="about", description="Get information about this bot")
 async def about(interaction: discord.Interaction):
