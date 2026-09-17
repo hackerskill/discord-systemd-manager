@@ -48,43 +48,57 @@ async def services(interaction: discord.Interaction):
 @app_commands.choices(service=services_choices)
 async def restart(interaction: discord.Interaction, service: app_commands.Choice[str]):
     await interaction.response.send_message(f"Restarting {service.value}...")
-    subprocess.run(["systemctl", "restart", service.value])
-    await interaction.followup.send("Service restarted successfully.")
+    result=subprocess.run(["systemctl", "restart", service.value], capture_output=True, text=True)
+    if result.returncode == 0:
+        await interaction.followup.send("Service restarted successfully.")
+    else:
+        await interaction.followup.send(f"Failed to restart service:\n```text\n{result.stderr}\n```")
 
 @tree.command(name="start", description="Start any service running on the server")
 @app_commands.choices(service=services_choices)
 async def start(interaction: discord.Interaction, service: app_commands.Choice[str]):
     await interaction.response.send_message(f"Starting {service.value}...")
-    subprocess.run(["systemctl", "start", service.value])
-    await interaction.followup.send("Service started successfully.")
+    result = subprocess.run(["systemctl", "start", service.value], capture_output=True, text=True)
+    if result.returncode == 0:
+        await interaction.followup.send("Service started successfully.")
+    else:
+        await interaction.followup.send(f"Failed to start service:\n```text\n{result.stderr}\n```")
 
 @tree.command(name="stop", description="Stop a service running on the server")
 @app_commands.choices(service=services_choices)
 async def stop(interaction: discord.Interaction, service: app_commands.Choice[str]):
     await interaction.response.send_message(f"Stopping {service.value}...")
-    subprocess.run(["systemctl", "stop", service.value])
-    await interaction.followup.send("Service stopped successfully.")
+    result = subprocess.run(["systemctl", "stop", service.value], capture_output=True, text=True)
+    if result.returncode == 0:
+        await interaction.followup.send("Service stopped successfully.")
+    else:
+        await interaction.followup.send(f"Failed to stop service:\n```text\n{result.stderr}\n```")
 
 @tree.command(name="status", description="See status of any service running on the server")
 @app_commands.choices(service=services_choices)
 async def status(interaction: discord.Interaction, service: app_commands.Choice[str]):
     await interaction.response.send_message(f"Checking status of {service.value}...")
     result = subprocess.run(["systemctl", "status", service.value], capture_output=True, text=True)
-    output = result.stdout.strip()
-    if result.stderr.strip():
-        output += f"\n{result.stderr.strip()}"
-    await interaction.followup.send(f"```text\n{output}\n```")
+    if result.returncode == 0:
+        output = result.stdout.strip()
+        if result.stderr.strip():
+            output += f"\n{result.stderr.strip()}"
+        await interaction.followup.send(f"```text\n{output}\n```")
+    else:
+        await interaction.followup.send(f"Failed to get status of {service.value}:\n```text\n{result.stderr}\n```")
 
 @tree.command(name="logs", description="Get logs of any service running on the server")
 @app_commands.choices(service=services_choices)
 async def logs(interaction: discord.Interaction, service: app_commands.Choice[str]):
     await interaction.response.send_message(f"Getting logs for {service.value}...")
     result = subprocess.run(["journalctl", "-u", service.value, "--no-pager", "-n", "20"], capture_output=True, text=True)
-    print(result.stdout)
-    output = result.stdout.strip()
-    if result.stderr.strip():
-        output += f"\n{result.stderr.strip()}"
-    await interaction.followup.send(f"```text\n{output}\n```")
+    if result.returncode == 0: 
+        output = result.stdout.strip()
+        if result.stderr.strip():
+            output += f"\n{result.stderr.strip()}"
+        await interaction.followup.send(f"```text\n{output}\n```")
+    else:
+        await interaction.followup.send(f"Failed to get logs for {service.value}:\n```text\n{result.stderr}\n```")
 
 @tree.command(name="clear", description="clearing the bot's messages")
 async def clear(interaction: discord.Interaction, clear: int):
