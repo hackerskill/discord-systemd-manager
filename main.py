@@ -19,9 +19,9 @@ def discover_services():
     services = subprocess.check_output(["systemctl", "list-unit-files", "--type=service", "--no-legend", "--no-pager"]).decode("utf-8").splitlines()
     choices = []
     for service in services:
-        service = service.split()[0]
-        if service.startswith("user-") and "@" not in service:
-            choices.append(service)
+        service_name = service.split()[0]
+        if service_name.startswith("user-") and "@" not in service_name:
+            choices.append(service_name)
     return choices
 
 def servicesChoices():
@@ -38,6 +38,11 @@ services_choices=servicesChoices()
 async def on_ready():
     await tree.sync()
     print(f"Logged in as {client.user}", flush=True)
+
+@tree.command(name="ping", description="Ping the bot to check connection")
+async def ping(interaction: discord.Interaction):
+    latency = round(client.latency * 1000)
+    await interaction.response.send_message(f"Pong! Latency: {latency} ms")
 
 @tree.command(name="services", description="Get information about all services running on the server")
 async def services(interaction: discord.Interaction):
