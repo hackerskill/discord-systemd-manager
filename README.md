@@ -26,7 +26,7 @@ A Discord bot for managing systemd services on Linux servers directly from Disco
 * **`about`** — Shows information about the bot itself.
 
 
-### Service Naming Convention
+## Service Naming Convention
 
 The bot automatically discovers services whose names start with `user-`.
 
