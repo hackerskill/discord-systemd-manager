@@ -18,11 +18,14 @@ tree= app_commands.CommandTree(client)
 def discover_services():
     services = subprocess.check_output(["systemctl", "list-unit-files", "--type=service", "--no-legend", "--no-pager"]).decode("utf-8").splitlines()
     choices = []
+    choices_status = []
     for service in services:
         service_name = service.split()[0]
         if service_name.startswith("user-") and "@" not in service_name:
             choices.append(service_name)
-    return choices
+            service_status = subprocess.run(["systemctl", "is-active", service_name], capture_output=True, text=True).stdout.strip()
+            choices_status.append(service_status)
+    return choices, choices_status
 
 def servicesChoices():
     choices = []
@@ -31,7 +34,7 @@ def servicesChoices():
         choices.append(choice)
     return choices
 
-services_list=discover_services()
+services_list, services_status = discover_services()
 services_choices=servicesChoices()
 
 @client.event
@@ -48,7 +51,10 @@ async def ping(interaction: discord.Interaction):
 async def services(interaction: discord.Interaction):
     await interaction.response.send_message("Getting information about all services...")
     print("Information about all services fetched", flush=True)
-    await interaction.followup.send("\n".join(services_list))
+    output = []
+    for service, status in zip(services_list, services_status):
+        output.append(f"{service} - {status}")
+    await interaction.followup.send("\n".join(output))
 
 @tree.command(name="restart", description="Restart a service on the server")
 @app_commands.choices(service=services_choices)
