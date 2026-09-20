@@ -15,7 +15,7 @@ A Discord bot for managing systemd services on Linux servers directly from Disco
 * **Bot Information** — View information about the systemd manager bot.
 
 ## Slash Commands
-* **`services`** — Fetches a list of all services on the server.
+* **`services`** — Fetches a list of all services on the server along with their current state.
 * **`status`** — View status of a specific service.
 * **`start`** — Start a service.
 * **`restart`** — Restart a service.
