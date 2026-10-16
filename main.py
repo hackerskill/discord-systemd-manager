@@ -7,7 +7,13 @@ import subprocess
 
 load_dotenv()
  
-token = os.getenv("DISCORD_TOKEN")
+token=os.getenv("DISCORD_TOKEN")
+admin=int(os.getenv("ADMIN_ID"))
+admin_role_ids=[]
+
+for role_id in os.getenv("ADMIN_ROLE_IDS", "").split(","):
+    if role_id.strip():
+        admin_role_ids.append(int(role_id.strip()))
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -34,6 +40,15 @@ def servicesChoices():
         choices.append(choice)
     return choices
 
+def is_admin(interaction: discord.Interaction):
+    if interaction.user.id==admin:
+        return True
+
+    if not isinstance(interaction.user, discord.Member):
+        return False
+
+    return any(role.id in admin_role_ids for role in interaction.user.roles)
+
 services_list, services_status = discover_services()
 services_choices=servicesChoices()
 
@@ -49,98 +64,121 @@ async def ping(interaction: discord.Interaction):
 
 @tree.command(name="services", description="Get information about all services running on the server")
 async def services(interaction: discord.Interaction):
-    await interaction.response.send_message("Getting information about all services...")
-    print("Information about all services fetched", flush=True)
-    output = []
-    for service, status in zip(services_list, services_status):
-        output.append(f"{service} - {status}")
-    await interaction.followup.send("\n".join(output))
+    if is_admin(interaction):
+        await interaction.response.send_message("Getting information about all services...")
+        print("Information about all services fetched", flush=True)
+        output = []
+        for service, status in zip(services_list, services_status):
+            output.append(f"{service} - {status}")
+        await interaction.followup.send("\n".join(output))
+    else:
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="restart", description="Restart a service on the server")
 @app_commands.choices(service=services_choices)
 async def restart(interaction: discord.Interaction, service: app_commands.Choice[str]):
-    await interaction.response.send_message(f"Restarting {service.value}...")
-    result=subprocess.run(["systemctl", "restart", service.value], capture_output=True, text=True)
-    if result.returncode == 0:
-        await interaction.followup.send("Service restarted successfully.")
-        print(f"Restarted {service.value}", flush=True)
+    if is_admin(interaction):
+        await interaction.response.send_message(f"Restarting {service.value}...")
+        result=subprocess.run(["systemctl", "restart", service.value], capture_output=True, text=True)
+        if result.returncode == 0:
+            await interaction.followup.send("Service restarted successfully.")
+            print(f"Restarted {service.value}", flush=True)
+        else:
+            await interaction.followup.send(f"Failed to restart service:\n```text\n{result.stderr}\n```")
     else:
-        await interaction.followup.send(f"Failed to restart service:\n```text\n{result.stderr}\n```")
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="start", description="Start any service running on the server")
 @app_commands.choices(service=services_choices)
 async def start(interaction: discord.Interaction, service: app_commands.Choice[str]):
-    await interaction.response.send_message(f"Starting {service.value}...")
-    result = subprocess.run(["systemctl", "start", service.value], capture_output=True, text=True)
-    if result.returncode == 0:
-        await interaction.followup.send("Service started successfully.")
-        print(f"Started {service.value}", flush=True)
+    if is_admin(interaction):
+        await interaction.response.send_message(f"Starting {service.value}...")
+        result = subprocess.run(["systemctl", "start", service.value], capture_output=True, text=True)
+        if result.returncode == 0:
+            await interaction.followup.send("Service started successfully.")
+            print(f"Started {service.value}", flush=True)
+        else:
+            await interaction.followup.send(f"Failed to start service:\n```text\n{result.stderr}\n```")
     else:
-        await interaction.followup.send(f"Failed to start service:\n```text\n{result.stderr}\n```")
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="stop", description="Stop a service running on the server")
 @app_commands.choices(service=services_choices)
 async def stop(interaction: discord.Interaction, service: app_commands.Choice[str]):
-    await interaction.response.send_message(f"Stopping {service.value}...")
-    result = subprocess.run(["systemctl", "stop", service.value], capture_output=True, text=True)
-    if result.returncode == 0:
-        await interaction.followup.send("Service stopped successfully.")
-        print(f"Stopped {service.value}", flush=True)
+    if is_admin(interaction):
+        await interaction.response.send_message(f"Stopping {service.value}...")
+        result = subprocess.run(["systemctl", "stop", service.value], capture_output=True, text=True)
+        if result.returncode == 0:
+            await interaction.followup.send("Service stopped successfully.")
+            print(f"Stopped {service.value}", flush=True)
+        else:
+            await interaction.followup.send(f"Failed to stop service:\n```text\n{result.stderr}\n```")
     else:
-        await interaction.followup.send(f"Failed to stop service:\n```text\n{result.stderr}\n```")
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="status", description="See status of any service running on the server")
 @app_commands.choices(service=services_choices)
 async def status(interaction: discord.Interaction, service: app_commands.Choice[str]):
-    await interaction.response.send_message(f"Checking status of {service.value}...")
-    result = subprocess.run(["systemctl", "status", service.value], capture_output=True, text=True)
-    if result.returncode == 0:
-        output = result.stdout.strip()
-        if result.stderr.strip():
-            output += f"\n{result.stderr.strip()}"
-        await interaction.followup.send(f"```text\n{output}\n```")
-        print(f"Status of {service.value} fetched", flush=True)
+    if is_admin(interaction):
+        await interaction.response.send_message(f"Checking status of {service.value}...")
+        result = subprocess.run(["systemctl", "status", service.value], capture_output=True, text=True)
+        if result.returncode == 0:
+            output = result.stdout.strip()
+            if result.stderr.strip():
+                output += f"\n{result.stderr.strip()}"
+            await interaction.followup.send(f"```text\n{output}\n```")
+            print(f"Status of {service.value} fetched", flush=True)
+        else:
+            await interaction.followup.send(f"Failed to get status of {service.value}:\n```text\n{result.stderr}\n```")
     else:
-        await interaction.followup.send(f"Failed to get status of {service.value}:\n```text\n{result.stderr}\n```")
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="logs", description="Get logs of any service running on the server")
 @app_commands.choices(service=services_choices)
 async def logs(interaction: discord.Interaction, service: app_commands.Choice[str]):
-    await interaction.response.send_message(f"Getting logs for {service.value}...")
-    result = subprocess.run(["journalctl", "-u", service.value, "--no-pager", "-n", "20"], capture_output=True, text=True)
-    if result.returncode == 0: 
-        output = result.stdout.strip()
-        if result.stderr.strip():
-            output += f"\n{result.stderr.strip()}"
-        if len(output) > 1900:
-            output = "...(truncated)\n" + output[-1900:]
-        await interaction.followup.send(f"```text\n{output}\n```")
-        print(f"Logs for {service.value} fetched", flush=True)
+    if is_admin(interaction):
+        await interaction.response.send_message(f"Getting logs for {service.value}...")
+        result = subprocess.run(["journalctl", "-u", service.value, "--no-pager", "-n", "20"], capture_output=True, text=True)
+        if result.returncode == 0: 
+            output = result.stdout.strip()
+            if result.stderr.strip():
+                output += f"\n{result.stderr.strip()}"
+            if len(output) > 1900:
+                output = "...(truncated)\n" + output[-1900:]
+            await interaction.followup.send(f"```text\n{output}\n```")
+            print(f"Logs for {service.value} fetched", flush=True)
+        else:
+            await interaction.followup.send(f"Failed to get logs for {service.value}:\n```text\n{result.stderr}\n```")
     else:
-        await interaction.followup.send(f"Failed to get logs for {service.value}:\n```text\n{result.stderr}\n```")
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="git-pull", description="Pull latest changes from the git repository")
 @app_commands.choices(service=services_choices)
 async def restart(interaction: discord.Interaction, service: app_commands.Choice[str]):
-    await interaction.response.send_message(f"Restarting {service.value}...")
-    path=subprocess.run(["systemctl", "show", service.value, "--property=WorkingDirectory", "--value"], capture_output=True, text=True)
-    result=subprocess.run(["git", "-C", path.stdout.strip(), "pull"], capture_output=True, text=True)
-    if result.returncode == 0 and path.returncode == 0:
-        await interaction.followup.send("Latest changes pulled.")
-        print(f"Pulling latest changes for {service.value}", flush=True)
+    if is_admin(interaction):
+        await interaction.response.send_message(f"Git pull for {service.value}...")
+        path=subprocess.run(["systemctl", "show", service.value, "--property=WorkingDirectory", "--value"], capture_output=True, text=True)
+        result=subprocess.run(["git", "-C", path.stdout.strip(), "pull"], capture_output=True, text=True)
+        if result.returncode == 0 and path.returncode == 0:
+            await interaction.followup.send("Latest changes pulled.")
+            print(f"Pulling latest changes for {service.value}", flush=True)
+        else:
+            await interaction.followup.send(f"Failed to pull latest changes:\n```text\n{result.stderr}\n```")
     else:
-        await interaction.followup.send(f"Failed to pull latest changes:\n```text\n{result.stderr}\n```")
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="clear", description="clearing the bot's messages")
 async def clear(interaction: discord.Interaction, clear: int):
-    await interaction.response.send_message("Clearing messages...")
-    async for msg in interaction.channel.history(limit=clear):
-                if msg.author == client.user:
-                    await msg.delete()
+    if is_admin(interaction):
+        await interaction.response.send_message("Clearing messages...")
+        async for msg in interaction.channel.history(limit=clear):
+                    if msg.author == client.user:
+                        await msg.delete()
+    else:
+        await interaction.response.send_message("You do not have permission to use this command.")
 
 @tree.command(name="about", description="Get information about this bot")
 async def about(interaction: discord.Interaction):
-    await interaction.response.send_message("This is a discord systemd manager, built for managing systemd services on a server directly from discord chats."
-    "\n\n_Built by hackerskills_")
+    await interaction.response.send_message("This is a discord systemd manager, built for managing systemd services on a server directly from discord chats.")
 
 client.run(token)
