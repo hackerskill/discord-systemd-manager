@@ -119,7 +119,7 @@ async def logs(interaction: discord.Interaction, service: app_commands.Choice[st
     else:
         await interaction.followup.send(f"Failed to get logs for {service.value}:\n```text\n{result.stderr}\n```")
 
-@tree.command(name="git pull", description="Pull latest changes from the git repository")
+@tree.command(name="git-pull", description="Pull latest changes from the git repository")
 @app_commands.choices(service=services_choices)
 async def restart(interaction: discord.Interaction, service: app_commands.Choice[str]):
     await interaction.response.send_message(f"Restarting {service.value}...")
