@@ -119,6 +119,18 @@ async def logs(interaction: discord.Interaction, service: app_commands.Choice[st
     else:
         await interaction.followup.send(f"Failed to get logs for {service.value}:\n```text\n{result.stderr}\n```")
 
+@tree.command(name="git pull", description="Pull latest changes from the git repository")
+@app_commands.choices(service=services_choices)
+async def restart(interaction: discord.Interaction, service: app_commands.Choice[str]):
+    await interaction.response.send_message(f"Restarting {service.value}...")
+    path=subprocess.run(["systemctl", "show", service.value, "--property=WorkingDirectory", "--value"], capture_output=True, text=True)
+    result=subprocess.run(["git", "-C", path.stdout.strip(), "pull"], capture_output=True, text=True)
+    if result.returncode == 0 and path.returncode == 0:
+        await interaction.followup.send("Latest changes pulled.")
+        print(f"Pulling latest changes for {service.value}", flush=True)
+    else:
+        await interaction.followup.send(f"Failed to pull latest changes:\n```text\n{result.stderr}\n```")
+
 @tree.command(name="clear", description="clearing the bot's messages")
 async def clear(interaction: discord.Interaction, clear: int):
     await interaction.response.send_message("Clearing messages...")
